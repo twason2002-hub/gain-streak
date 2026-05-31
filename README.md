@@ -2,9 +2,32 @@
 
 A fitness app that helps you stay consistent — 3 workouts a week, every week.
 
-<p align="center">
-  <img src="screenshots/landing.png" alt="Gainstreak landing screen" width="280">
-</p>
+<table>
+  <tr>
+    <td><img src="screenshots/landing.png" alt="Landing" width="200"></td>
+    <td><img src="screenshots/login.png" alt="Login" width="200"></td>
+    <td><img src="screenshots/signup.png" alt="Sign Up" width="200"></td>
+    <td><img src="screenshots/dashboard.png" alt="Dashboard" width="200"></td>
+  </tr>
+  <tr>
+    <td align="center">Landing</td>
+    <td align="center">Login</td>
+    <td align="center">Sign Up</td>
+    <td align="center">Dashboard</td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/workout.png" alt="Workout" width="200"></td>
+    <td><img src="screenshots/progress.png" alt="Progress" width="200"></td>
+    <td><img src="screenshots/profile.png" alt="Profile" width="200"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center">Workout</td>
+    <td align="center">Progress</td>
+    <td align="center">Profile</td>
+    <td></td>
+  </tr>
+</table>
 
 ## What it does
 
