@@ -2,6 +2,10 @@
 
 A fitness app that helps you stay consistent — 3 workouts a week, every week.
 
+<p align="center">
+  <img src="screenshots/landing.png" alt="Gainstreak landing screen" width="280">
+</p>
+
 ## What it does
 
 - Track your workouts (exercises, reps, weight)
