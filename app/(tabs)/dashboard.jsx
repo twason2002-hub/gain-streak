@@ -353,6 +353,10 @@ export default function DashboardScreen() {
           supabase.from('profiles').select('username, display_name, is_guest').eq('id', user.id).maybeSingle(),
           10000
         )
+        if (result.error) {
+          console.log('[Dashboard] Profile query error:', result.error.message, result.error.details)
+          throw new Error(result.error.message)
+        }
         profile = result.data
         console.log('[Dashboard] Profile result:', profile ? 'found' : 'null')
       } catch (e) {
@@ -375,10 +379,14 @@ export default function DashboardScreen() {
           supabase.from('workout_sessions')
             .select('id, started_at, completed_at, status')
             .eq('user_id', user.id)
-            .in('status', ['completed', 'auto_completed'])
+            .or('status.eq.completed,status.eq.auto_completed')
             .order('started_at', { ascending: false }),
           10000
         )
+        if (result.error) {
+          console.log('[Dashboard] Sessions query error:', result.error.message)
+          throw new Error(result.error.message)
+        }
         workoutData = result.data
         console.log('[Dashboard] Sessions result count:', workoutData?.length ?? 'null')
       } catch (e) {
