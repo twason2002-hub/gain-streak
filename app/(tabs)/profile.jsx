@@ -10,8 +10,17 @@ import { calculatePRs, getTopPRs, getExerciseIcon } from '../../lib/prs'
 import { ensureExerciseTypes } from '../../lib/config'
 import { withTimeout } from '../../lib/supabaseHelpers'
 import { getDummyProfile, getDummyWorkouts } from '../../lib/seedData'
-import { colors, spacing, radii } from '../../constants/theme'
-import Flame from '../../components/Flame'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  letterSpacing,
+  shadows,
+  iconSize,
+} from '../../constants/theme'
+import GlowCircle from '../../components/GlowCircle'
+import StreakHero from '../../components/StreakHero'
 
 export default function ProfileScreen() {
   const { user } = useAuth()
@@ -25,6 +34,7 @@ export default function ProfileScreen() {
   const [badgeProgress, setBadgeProgress] = useState(0)
   const [fetchError, setFetchError] = useState('')
   const [initialLoad, setInitialLoad] = useState(true)
+  const [usingDemoData, setUsingDemoData] = useState(false)
   const router = useRouter()
 
   async function fetchData() {
@@ -64,6 +74,7 @@ export default function ProfileScreen() {
       setProfile(profileData || getDummyProfile())
 
       const w = workoutData || getDummyWorkouts()
+      setUsingDemoData(workoutData === null && profileData === null)
       setWorkouts(w)
       const sd = calculateStreak(w, 3)
       setStreakData(sd)
@@ -154,11 +165,17 @@ export default function ProfileScreen() {
   if (fetchError) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.red} style={{ marginBottom: 16 }} />
+        <Ionicons name="alert-circle-outline" size={iconSize.xl + 20} color={colors.red} style={{ marginBottom: spacing.md }} />
         <Text style={styles.errorTitle}>Something went wrong</Text>
         <Text style={styles.errorSub}>{fetchError}</Text>
-        <TouchableOpacity activeOpacity={0.8} style={styles.retryBtn} onPress={fetchData}>
-          <Ionicons name="refresh-outline" size={18} color={colors.black} style={{ marginRight: 8 }} />
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.retryBtn}
+          onPress={fetchData}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading profile"
+        >
+          <Ionicons name="refresh-outline" size={iconSize.sm + 2} color={colors.black} style={{ marginRight: spacing.sm }} />
           <Text style={styles.retryBtnText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -171,10 +188,19 @@ export default function ProfileScreen() {
       keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await fetchData(); setRefreshing(false) }} tintColor={colors.accent} />}
     >
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
+      {usingDemoData ? (
+        <View style={styles.demoPillWrap}>
+          <View style={styles.demoPill}>
+            <Ionicons name="cloud-offline-outline" size={iconSize.sm - 2} color={colors.orange} />
+            <Text style={styles.demoPillText}>Showing demo data</Text>
+          </View>
         </View>
+      ) : null}
+
+      <View style={styles.header}>
+        <GlowCircle size={88} color={colors.accent} background={colors.accent}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </GlowCircle>
         <Text style={styles.name}>{profile?.display_name || profile?.username || 'Athlete'}</Text>
         {memberSince ? <Text style={styles.memberSince}>Member since {memberSince}</Text> : null}
         {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
@@ -200,10 +226,23 @@ export default function ProfileScreen() {
           ) : null}
         </View>
 
-        <TouchableOpacity activeOpacity={0.7} style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
-          <Ionicons name="create-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.editBtn}
+          onPress={() => router.push('/edit-profile')}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+        >
+          <Ionicons name="create-outline" size={iconSize.sm} color={colors.textSecondary} style={{ marginRight: spacing.xs + 2 }} />
           <Text style={styles.editBtnText}>Edit Profile</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.heroWrap}>
+        <StreakHero
+          streak={streakData.streak}
+          totalWeeks={streakData.totalCompleteWeeks}
+        />
       </View>
 
       <View style={styles.statsCard}>
@@ -213,11 +252,8 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.statDivider} />
         <View style={styles.stat}>
-          <View style={styles.streakStatRow}>
-            <Flame streak={streakData.streak} size={20} />
-            <Text style={[styles.statNumber, { marginLeft: 6 }]}>{streakData.streak}</Text>
-          </View>
-          <Text style={styles.statLabel}>Streak</Text>
+          <Text style={styles.statNumber}>{streakData.totalCompleteWeeks}</Text>
+          <Text style={styles.statLabel}>Weeks</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.stat}>
@@ -258,7 +294,7 @@ export default function ProfileScreen() {
         })}
         {topPRsList.length === 0 && (
           <View style={styles.emptyPr}>
-            <Ionicons name="trophy-outline" size={32} color={colors.textMuted} style={{ marginBottom: 8 }} />
+            <Ionicons name="trophy-outline" size={iconSize.xl} color={colors.textMuted} style={{ marginBottom: spacing.sm }} />
             <Text style={styles.emptyPrText}>Log workouts to see your PRs</Text>
           </View>
         )}
@@ -278,40 +314,43 @@ export default function ProfileScreen() {
             <Text style={styles.badgeProgressSub}>{streakData.totalCompleteWeeks} / {nextBadge.weeks} weeks</Text>
           </View>
         ) : null}
-        {exerciseTypes.length > 0 ? (
-          <View style={styles.badgeGrid}>
-            {[104, 52, 24, 12].map((weeks) => {
-              const earned = streakData.totalCompleteWeeks >= weeks
-              const tierColor = weeks >= 104 ? colors.red : weeks >= 52 ? colors.teal : weeks >= 24 ? colors.purple : colors.gold
-              const tierLabel = weeks >= 104 ? '2 Years' : weeks >= 52 ? '1 Year' : weeks >= 24 ? '6 Months' : '3 Months'
-              return (
-                <View key={weeks} style={[styles.badgeCell, earned && { borderColor: tierColor + '50', backgroundColor: tierColor + '10' }]}>
-                  <View style={[styles.badgeIcon, { backgroundColor: earned ? tierColor + '25' : colors.surfaceLight }]}>
-                    {earned ? (
-                      <Ionicons name="checkmark-circle" size={22} color={tierColor} />
-                    ) : (
-                      <Ionicons name="lock-closed" size={16} color={colors.textMuted} />
-                    )}
-                  </View>
-                  <Text style={[styles.badgeCellLabel, earned && { color: tierColor }]}>{tierLabel}</Text>
+        <View style={styles.badgeGrid}>
+          {[12, 24, 52, 104].map((weeks) => {
+            const earned = streakData.totalCompleteWeeks >= weeks
+            const tierColor = weeks >= 104 ? colors.red : weeks >= 52 ? colors.teal : weeks >= 24 ? colors.purple : colors.gold
+            const tierLabel = weeks >= 104 ? '2 Years' : weeks >= 52 ? '1 Year' : weeks >= 24 ? '6 Months' : '3 Months'
+            return (
+              <View key={weeks} style={[styles.badgeCell, earned && { borderColor: tierColor + '50', backgroundColor: tierColor + '10' }]}>
+                <View style={[styles.badgeIcon, { backgroundColor: earned ? tierColor + '25' : colors.surfaceLight, ...(earned ? shadows.glow(tierColor) : {}) }]}>
+                  {earned ? (
+                    <Ionicons name="checkmark-circle" size={iconSize.lg - 2} color={tierColor} />
+                  ) : (
+                    <Ionicons name="lock-closed" size={iconSize.sm} color={colors.textMuted} />
+                  )}
                 </View>
-              )
-            })}
-          </View>
-        ) : null}
+                <Text style={[styles.badgeCellLabel, earned && { color: tierColor }]}>{tierLabel}</Text>
+              </View>
+            )
+          })}
+        </View>
       </View>
 
       <TouchableOpacity
-        activeOpacity={0.7}
+        activeOpacity={0.85}
         style={styles.logoutBtn}
         onPress={handleLogout}
+        accessibilityRole="button"
+        accessibilityLabel="Log out"
       >
-        <Ionicons name="log-out-outline" size={18} color={colors.red} style={{ marginRight: 8 }} />
+        <Ionicons name="log-out-outline" size={iconSize.sm + 2} color={colors.red} style={{ marginRight: spacing.sm }} />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </ScrollView>
   )
 }
+
+const BADGE_COLUMN_GAP = spacing.sm + spacing.xs
+const BADGE_HORIZONTAL_PADDING = spacing.lg
 
 const styles = StyleSheet.create({
   container: {
@@ -337,47 +376,62 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.lg,
   },
   errorTitle: {
     fontSize: 20,
     fontWeight: '900',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   errorSub: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   retryBtn: {
     backgroundColor: colors.accent,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.xl - 4,
     borderRadius: radii.lg,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 48,
   },
   retryBtnText: {
     color: colors.black,
     fontSize: 15,
     fontWeight: '800',
   },
+  demoPillWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  demoPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    backgroundColor: colors.orange + '15',
+    borderColor: colors.orange + '50',
+    borderWidth: 1,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
+  },
+  demoPillText: {
+    fontSize: 11,
+    color: colors.orange,
+    fontWeight: '800',
+    letterSpacing: letterSpacing.normal,
+    textTransform: 'uppercase',
+  },
   header: {
     alignItems: 'center',
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
   },
   avatarText: {
     fontSize: 32,
@@ -387,37 +441,40 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: '900',
+    lineHeight: 30,
     color: colors.text,
     letterSpacing: -0.5,
+    marginTop: spacing.md,
   },
   memberSince: {
     fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   bio: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 12,
-    paddingHorizontal: 24,
+    marginTop: spacing.sm + spacing.xs,
+    paddingHorizontal: spacing.lg,
     lineHeight: 22,
     fontWeight: '500',
   },
   editBtn: {
-    marginTop: 18,
+    marginTop: spacing.md + 2,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surfaceLight,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm + spacing.xs,
+    paddingHorizontal: spacing.md,
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 44,
   },
   editBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '700',
   },
@@ -429,8 +486,8 @@ const styles = StyleSheet.create({
   piiChip: {
     backgroundColor: colors.surfaceLight,
     borderRadius: radii.md,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
@@ -445,8 +502,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
     marginTop: 2,
+  },
+  heroWrap: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
   statsCard: {
     flexDirection: 'row',
@@ -454,7 +515,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     borderRadius: radii.lg,
     padding: spacing.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing.lg,
   },
@@ -466,7 +527,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     backgroundColor: colors.border,
-    marginVertical: 4,
+    marginVertical: spacing.xs,
   },
   statNumber: {
     fontSize: 24,
@@ -478,19 +539,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 4,
-  },
-  streakStatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    letterSpacing: letterSpacing.tight,
+    marginTop: spacing.xs,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.label,
     color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
@@ -498,7 +552,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginHorizontal: spacing.lg,
     borderRadius: radii.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -506,19 +560,19 @@ const styles = StyleSheet.create({
   prRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.sm + spacing.xs,
   },
   prRowBorder: {
-    borderBottomWidth: 1.5,
+    borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   prIcon: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: radii.md - 2,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing.sm + spacing.xs,
   },
   prIconText: {
     fontSize: 18,
@@ -529,7 +583,7 @@ const styles = StyleSheet.create({
   prNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   prName: {
     fontSize: 15,
@@ -539,14 +593,14 @@ const styles = StyleSheet.create({
   newPrBadge: {
     backgroundColor: colors.green + '20',
     borderRadius: 4,
-    paddingHorizontal: 6,
+    paddingHorizontal: spacing.xs + 2,
     paddingVertical: 2,
   },
   newPrText: {
     fontSize: 9,
     fontWeight: '900',
     color: colors.green,
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
   },
   prDetail: {
     fontSize: 13,
@@ -558,11 +612,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: colors.text,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   emptyPr: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: spacing.lg,
   },
   emptyPrText: {
     fontSize: 13,
@@ -570,22 +624,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   badgeSection: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: BADGE_HORIZONTAL_PADDING,
     marginBottom: spacing.xl,
   },
   badgeProgressRow: {
     marginBottom: spacing.md,
-    gap: 8,
+    gap: spacing.sm,
   },
   badgeProgressPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs + 2,
     borderRadius: radii.full,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + spacing.xs,
     alignSelf: 'flex-start',
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   badgeDot: {
     width: 8,
@@ -613,23 +667,23 @@ const styles = StyleSheet.create({
   },
   badgeGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: BADGE_COLUMN_GAP,
   },
   badgeCell: {
     flex: 1,
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
+    gap: spacing.sm,
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.xs + 2,
     borderRadius: radii.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceLight,
   },
   badgeIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -638,14 +692,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textMuted,
     textAlign: 'center',
+    letterSpacing: letterSpacing.tight,
   },
   logoutBtn: {
-    paddingVertical: 16,
+    minHeight: 52,
+    paddingVertical: spacing.md,
     borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.danger + '30',
     backgroundColor: colors.dangerDim,
     marginHorizontal: spacing.lg,
@@ -653,8 +709,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: colors.red,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
   },
 })
-

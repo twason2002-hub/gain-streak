@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, ScrollView, RefreshControl } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
@@ -8,14 +8,24 @@ import { calculateStreak, getCurrentWeekRange, getWeekId } from '../../lib/strea
 import { getBadge, getNextBadge, getProgressToNextBadge } from '../../lib/badges'
 import { withTimeout } from '../../lib/supabaseHelpers'
 import { getDummyWorkouts, getDummyProfile } from '../../lib/seedData'
-import { colors, spacing, radii } from '../../constants/theme'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  letterSpacing,
+  shadows,
+  iconSize,
+} from '../../constants/theme'
 import Flame from '../../components/Flame'
+import GlowCircle from '../../components/GlowCircle'
+import StreakHero from '../../components/StreakHero'
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   loadingContainer: {
     flex: 1,
@@ -42,25 +52,47 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   errorSub: {
     fontSize: 14,
     color: colors.textMuted,
-    marginBottom: 24,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
   },
   retryBtn: {
     backgroundColor: colors.accent,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md - 2,
     borderRadius: radii.lg,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 48,
   },
   retryBtnText: {
     color: colors.black,
     fontSize: 16,
     fontWeight: '800',
+  },
+  demoPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    backgroundColor: colors.orange + '15',
+    borderColor: colors.orange + '50',
+    borderWidth: 1,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
+    marginBottom: spacing.sm + spacing.xs,
+  },
+  demoPillText: {
+    fontSize: 11,
+    color: colors.orange,
+    fontWeight: '800',
+    letterSpacing: letterSpacing.normal,
+    textTransform: 'uppercase',
   },
   header: {
     marginBottom: spacing.lg,
@@ -69,25 +101,23 @@ const styles = StyleSheet.create({
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm + 2,
   },
   greeting: {
-    fontSize: 28,
-    fontWeight: '900',
+    ...typography.h2,
     color: colors.text,
-    letterSpacing: -0.5,
   },
   dateText: {
     fontSize: 14,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
-    gap: 8,
+    paddingVertical: spacing.xxl + spacing.md,
+    gap: spacing.md,
   },
   emptyTitle: {
     fontSize: 20,
@@ -97,68 +127,39 @@ const styles = StyleSheet.create({
   emptySub: {
     fontSize: 14,
     color: colors.textMuted,
-    marginBottom: 20,
+    marginBottom: spacing.md + spacing.xs,
+    textAlign: 'center',
   },
   emptyBtn: {
     backgroundColor: colors.accent,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    minHeight: 56,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     borderRadius: radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.button,
   },
   emptyBtnText: {
     color: colors.black,
     fontSize: 16,
     fontWeight: '800',
   },
-  streakCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
+  heroWrap: {
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 3,
   },
-  streakNumber: {
-    fontSize: 84,
-    fontWeight: '950',
-    color: colors.accent,
-    lineHeight: 84,
-    marginTop: 16,
-    letterSpacing: -2,
-    textShadowColor: colors.accentGlow,
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 15,
-  },
-  streakSub: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  streakMini: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 16,
-    fontWeight: '600',
+  badgePillRow: {
+    alignItems: 'center',
+    marginTop: spacing.sm + spacing.xs,
   },
   badgePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radii.full,
-    gap: 8,
+    gap: spacing.sm,
     backgroundColor: colors.surfaceLight,
   },
   badgeDot: {
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
   badgePillText: {
     fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
   },
   weekCard: {
     backgroundColor: colors.surface,
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: colors.text,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: letterSpacing.normal,
   },
   weekRange: {
     fontSize: 12,
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
   },
   dayCol: {
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm + 2,
   },
   dayLabel: {
     fontSize: 11,
@@ -213,9 +214,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   dayDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.surfaceLight,
     borderWidth: 1.5,
     borderColor: colors.borderLight,
@@ -230,11 +231,7 @@ const styles = StyleSheet.create({
   dayDotComplete: {
     backgroundColor: colors.green,
     borderColor: colors.green,
-    shadowColor: colors.green,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    ...shadows.glow(colors.green),
   },
   dayDotFuture: {
     opacity: 0.25,
@@ -243,15 +240,15 @@ const styles = StyleSheet.create({
     opacity: 0.25,
   },
   progressSection: {
-    gap: 10,
-    marginTop: 4,
+    gap: spacing.sm + 2,
+    marginTop: spacing.xs,
   },
   weekProgress: {
     fontSize: 13,
     color: colors.text,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
   },
   progressBar: {
     height: 10,
@@ -263,38 +260,31 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: colors.green,
     borderRadius: 5,
-    shadowColor: colors.green,
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
   },
   workoutBtn: {
     backgroundColor: colors.accent,
-    paddingVertical: 18,
+    minHeight: 56,
+    paddingVertical: spacing.md + 2,
     borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     marginBottom: spacing.md,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
+    ...shadows.button,
   },
   workoutBtnText: {
     color: colors.black,
     fontSize: 16,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: letterSpacing.normal,
   },
   nextBadgeCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
     padding: spacing.lg,
     marginBottom: spacing.xl,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   nextBadgeHeader: {
@@ -304,26 +294,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   nextBadgeTitle: {
-    fontSize: 12,
+    ...typography.label,
     color: colors.textSecondary,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   nextBadgePill: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
     borderRadius: radii.full,
-    gap: 6,
+    gap: spacing.xs + 2,
     backgroundColor: colors.surfaceLight,
   },
   nextBadgeName: {
     fontSize: 12,
-    fontWeight: '850',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: letterSpacing.tight,
   },
   nextBadgeProgress: {
     fontSize: 11,
@@ -345,6 +332,7 @@ export default function DashboardScreen() {
   const [badge, setBadge] = useState(null)
   const [nextBadge, setNextBadge] = useState(null)
   const [badgeProgress, setBadgeProgress] = useState(0)
+  const [usingDemoData, setUsingDemoData] = useState(false)
   const router = useRouter()
 
   async function fetchData() {
@@ -394,6 +382,7 @@ export default function DashboardScreen() {
 
       setFetchError('')
       const data = workoutData || getDummyWorkouts()
+      setUsingDemoData(workoutData === null)
       console.log('[Dashboard] Data source:', workoutData ? 'supabase' : 'dummy', 'count:', data.length)
       setWorkouts(data)
 
@@ -462,11 +451,17 @@ export default function DashboardScreen() {
   if (fetchError) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.red} style={{ marginBottom: 16 }} />
+        <Ionicons name="alert-circle-outline" size={iconSize.xl + 20} color={colors.red} style={{ marginBottom: spacing.md }} />
         <Text style={styles.errorTitle}>Something went wrong</Text>
         <Text style={styles.errorSub}>{fetchError}</Text>
-        <TouchableOpacity activeOpacity={0.8} style={styles.retryBtn} onPress={fetchData}>
-          <Ionicons name="refresh-outline" size={18} color={colors.black} style={{ marginRight: 8 }} />
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.retryBtn}
+          onPress={fetchData}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading dashboard"
+        >
+          <Ionicons name="refresh-outline" size={iconSize.sm + 2} color={colors.black} style={{ marginRight: spacing.sm }} />
           <Text style={styles.retryBtnText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -479,6 +474,13 @@ export default function DashboardScreen() {
       keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
+      {usingDemoData ? (
+        <View style={styles.demoPill}>
+          <Ionicons name="cloud-offline-outline" size={iconSize.sm - 2} color={colors.orange} />
+          <Text style={styles.demoPillText}>Showing demo data</Text>
+        </View>
+      ) : null}
+
       <View style={styles.header}>
         <View style={styles.greetingRow}>
           <Text style={styles.greeting}>Hey, {username}</Text>
@@ -489,25 +491,34 @@ export default function DashboardScreen() {
 
       {(workouts || []).length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="barbell-outline" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
+          <GlowCircle size={72} color={colors.accent}>
+            <Ionicons name="barbell-outline" size={iconSize.xl + 4} color={colors.accent} />
+          </GlowCircle>
           <Text style={styles.emptyTitle}>No workouts yet</Text>
           <Text style={styles.emptySub}>Log your first workout to start your streak</Text>
-          <TouchableOpacity activeOpacity={0.8} style={styles.emptyBtn} onPress={() => router.navigate('/(tabs)/workout')}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.emptyBtn}
+            onPress={() => router.navigate('/(tabs)/workout')}
+            accessibilityRole="button"
+            accessibilityLabel="Log your first workout"
+          >
             <Text style={styles.emptyBtnText}>Log First Workout</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
-          <View style={styles.streakCard}>
-            <Flame streak={streakData.streak} size={36} />
-            <Text style={styles.streakNumber}>{streakData.streak}</Text>
-            <Text style={styles.streakSub}>week streak</Text>
-            <Text style={styles.streakMini}>{streakData.totalCompleteWeeks} total weeks completed</Text>
-
+          <View style={styles.heroWrap}>
+            <StreakHero
+              streak={streakData.streak}
+              totalWeeks={streakData.totalCompleteWeeks}
+            />
             {badge && (
-              <View style={[styles.badgePill, { borderColor: badge.color + '60', backgroundColor: badge.color + '12' }]}>
-                <View style={[styles.badgeDot, { backgroundColor: badge.color }]} />
-                <Text style={[styles.badgePillText, { color: badge.color }]}>{badge.label}</Text>
+              <View style={styles.badgePillRow}>
+                <View style={[styles.badgePill, { borderColor: badge.color + '60', backgroundColor: badge.color + '12' }]}>
+                  <View style={[styles.badgeDot, { backgroundColor: badge.color }]} />
+                  <Text style={[styles.badgePillText, { color: badge.color }]}>{badge.label}</Text>
+                </View>
               </View>
             )}
           </View>
@@ -538,7 +549,7 @@ export default function DashboardScreen() {
                       !isPast && !isToday && styles.dayDotFuture,
                     ]}>
                       {isComplete ? (
-                        <Ionicons name="checkmark" size={18} color={colors.black} />
+                        <Ionicons name="checkmark" size={iconSize.md} color={colors.black} />
                       ) : isToday && !isComplete ? (
                         <Ionicons name="ellipse" size={6} color={colors.accent} />
                       ) : null}
@@ -566,10 +577,18 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          <TouchableOpacity activeOpacity={0.8} style={styles.workoutBtn} onPress={() => router.navigate('/(tabs)/workout')}>
-            <Ionicons name="barbell" size={20} color={colors.black} style={{ marginRight: 8 }} />
+          <Pressable
+            onPress={() => router.navigate('/(tabs)/workout')}
+            style={({ pressed }) => [
+              styles.workoutBtn,
+              pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Log workout"
+          >
+            <Ionicons name="barbell" size={iconSize.md} color={colors.black} style={{ marginRight: spacing.sm }} />
             <Text style={styles.workoutBtnText}>Log Workout</Text>
-          </TouchableOpacity>
+          </Pressable>
 
           {nextBadge && (
             <View style={styles.nextBadgeCard}>

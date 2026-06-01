@@ -35,6 +35,7 @@ A fitness app that helps you stay consistent — 3 workouts a week, every week.
 - See your weekly streak (how many weeks you hit 3+ workouts)
 - Earn badges as you stay consistent
 - View your personal records for each exercise
+- Calculate plate loads for barbell lifts
 
 ## How to run the app
 

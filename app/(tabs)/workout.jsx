@@ -1,11 +1,21 @@
-import { useState, useRef, useEffect } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, ScrollView } from 'react-native'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet, Keyboard, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/AuthContext'
 import { withTimeout } from '../../lib/supabaseHelpers'
-import { colors, spacing, radii } from '../../constants/theme'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  letterSpacing,
+  shadows,
+  iconSize,
+} from '../../constants/theme'
+import Dot from '../../components/Dot'
+import PlateCalculator from '../../components/PlateCalculator'
 
 const styles = StyleSheet.create({
   container: {
@@ -14,77 +24,136 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: 40,
+    paddingBottom: spacing.xl + spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '900',
+    ...typography.h2,
     color: colors.text,
-    letterSpacing: -0.5,
   },
   date: {
     fontSize: 14,
     color: colors.textMuted,
-    marginBottom: spacing.xl,
-    marginTop: 4,
+    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
+    lineHeight: 20,
+  },
+  todayStats: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.lg,
+  },
+  todayStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  todayStatDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+  },
+  todayStatNumber: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.text,
+    letterSpacing: -0.5,
+  },
+  todayStatLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: letterSpacing.normal,
+    marginTop: spacing.xs,
   },
   errorBox: {
     backgroundColor: colors.dangerDim,
     borderRadius: radii.md,
-    padding: 14,
-    marginBottom: 20,
+    padding: spacing.md,
+    marginBottom: spacing.md + spacing.xs,
     borderWidth: 1,
     borderColor: colors.danger + '40',
   },
   errorText: {
-    color: colors.red,
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '600',
+    lineHeight: 20,
   },
   form: {
-    gap: 20,
+    gap: spacing.md + spacing.xs,
   },
   inputGroup: {
-    gap: 8,
+    gap: spacing.sm,
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.sm + spacing.xs,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.label,
     color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   input: {
     backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    padding: 16,
+    padding: spacing.md,
     fontSize: 16,
     color: colors.text,
     fontWeight: '700',
   },
+  inputFocused: {
+    borderColor: colors.accent,
+    borderWidth: 2,
+  },
   inputError: {
     borderColor: colors.danger,
+  },
+  weightInputWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  weightInput: {
+    paddingRight: 56,
+  },
+  calcBtn: {
+    position: 'absolute',
+    right: spacing.sm,
+    top: 0,
+    bottom: 0,
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.md,
+  },
+  calcBtnDisabled: {
+    opacity: 0.4,
   },
   recentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
+    gap: spacing.sm,
+    marginTop: spacing.sm + 2,
   },
   recentChip: {
     backgroundColor: colors.surfaceLight,
     borderRadius: radii.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.sm + spacing.xs,
+    paddingVertical: spacing.xs + 2,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   recentChipText: {
     fontSize: 12,
@@ -93,32 +162,29 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     backgroundColor: colors.accent,
-    paddingVertical: 18,
+    minHeight: 56,
+    paddingVertical: spacing.md + 2,
     borderRadius: radii.lg,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'center',
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
+    ...shadows.button,
   },
   saveText: {
     color: colors.black,
     fontSize: 16,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: letterSpacing.normal,
   },
   savedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     backgroundColor: colors.green + '12',
     borderRadius: radii.md,
-    padding: 12,
+    padding: spacing.sm + spacing.xs,
     marginTop: spacing.lg,
     borderWidth: 1,
     borderColor: colors.green + '25',
@@ -134,29 +200,30 @@ const styles = StyleSheet.create({
   todaysLogHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     marginBottom: spacing.md,
   },
   todaysLogTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.label,
     color: colors.text,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  },
+  logCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
   },
   logRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.border,
+    gap: spacing.sm + spacing.xs,
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.md,
   },
-  logDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.green,
+  logRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   logInfo: {
     flex: 1,
@@ -165,23 +232,54 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: colors.text,
+    lineHeight: 20,
   },
   logDetail: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '600',
     marginTop: 2,
+    lineHeight: 18,
+  },
+  logWeightChip: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    backgroundColor: colors.accentDim,
+    borderColor: colors.accent + '40',
+    borderWidth: 1,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
+    minWidth: 60,
+    justifyContent: 'center',
+  },
+  logWeightValue: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  logWeightUnit: {
+    color: colors.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    marginLeft: 2,
+    opacity: 0.8,
+  },
+  logRepsOnly: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
   },
   emptyLogHint: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.sm,
     marginTop: spacing.xxl,
     paddingVertical: spacing.lg,
   },
   emptyLogText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textMuted,
     fontWeight: '700',
   },
@@ -198,6 +296,8 @@ export default function WorkoutScreen() {
   const [recentExercises, setRecentExercises] = useState([])
   const [todaysLog, setTodaysLog] = useState([])
   const [justSaved, setJustSaved] = useState(false)
+  const [focused, setFocused] = useState(null)
+  const [calcOpen, setCalcOpen] = useState(false)
   const repsRef = useRef(null)
   const weightRef = useRef(null)
   const router = useRouter()
@@ -249,6 +349,15 @@ export default function WorkoutScreen() {
     setTimeout(() => repsRef.current?.focus(), 100)
   }
 
+  function refillFromEntry(entry) {
+    setExerciseName(entry.exercise_name)
+    setReps(String(entry.reps || ''))
+    setWeight(entry.weight > 0 ? String(entry.weight) : '')
+    setError('')
+    setFieldErrors({})
+    setTimeout(() => repsRef.current?.focus(), 100)
+  }
+
   async function handleSave() {
     Keyboard.dismiss()
     const errors = {}
@@ -292,6 +401,16 @@ export default function WorkoutScreen() {
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
+  const todayStats = useMemo(() => {
+    const sets = todaysLog.length
+    const reps = todaysLog.reduce((sum, e) => sum + (e.reps || 0), 0)
+    const volume = todaysLog.reduce((sum, e) => sum + (e.reps || 0) * (e.weight || 0), 0)
+    return { sets, reps, volume }
+  }, [todaysLog])
+
+  const weightNum = parseFloat(weight)
+  const calcEnabled = !isNaN(weightNum) && weightNum > 0
+
   return (
     <ScrollView
       style={styles.container}
@@ -301,8 +420,27 @@ export default function WorkoutScreen() {
       <Text style={styles.title}>Log Workout</Text>
       <Text style={styles.date}>{today}</Text>
 
+      {todaysLog.length > 0 ? (
+        <View style={styles.todayStats}>
+          <View style={styles.todayStat}>
+            <Text style={styles.todayStatNumber}>{todayStats.sets}</Text>
+            <Text style={styles.todayStatLabel}>Sets</Text>
+          </View>
+          <View style={styles.todayStatDivider} />
+          <View style={styles.todayStat}>
+            <Text style={styles.todayStatNumber}>{todayStats.reps}</Text>
+            <Text style={styles.todayStatLabel}>Reps</Text>
+          </View>
+          <View style={styles.todayStatDivider} />
+          <View style={styles.todayStat}>
+            <Text style={styles.todayStatNumber}>{Math.round(todayStats.volume)}</Text>
+            <Text style={styles.todayStatLabel}>Volume kg</Text>
+          </View>
+        </View>
+      ) : null}
+
       {error ? (
-        <View style={styles.errorBox}>
+        <View style={styles.errorBox} accessibilityLiveRegion="polite">
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
@@ -311,21 +449,35 @@ export default function WorkoutScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Exercise</Text>
           <TextInput
-            style={[styles.input, fieldErrors.exerciseName && styles.inputError]}
+            style={[
+              styles.input,
+              focused === 'exerciseName' && styles.inputFocused,
+              fieldErrors.exerciseName && styles.inputError,
+            ]}
             placeholder="e.g. Bench Press"
             placeholderTextColor={colors.textMuted}
             value={exerciseName}
             onChangeText={(v) => { setExerciseName(v); setError(''); setFieldErrors({}) }}
+            onFocus={() => setFocused('exerciseName')}
+            onBlur={() => setFocused(null)}
             autoCapitalize="words"
             returnKeyType="next"
             autoFocus
             onSubmitEditing={() => repsRef.current?.focus()}
+            accessibilityLabel="Exercise name"
           />
           {recentExercises.length > 0 && !exerciseName ? (
             <View style={styles.recentRow}>
-              <Ionicons name="time-outline" size={14} color={colors.textMuted} />
+              <Ionicons name="time-outline" size={iconSize.sm - 2} color={colors.textMuted} />
               {recentExercises.map(name => (
-                <TouchableOpacity key={name} activeOpacity={0.7} style={styles.recentChip} onPress={() => selectExercise(name)}>
+                <TouchableOpacity
+                  key={name}
+                  activeOpacity={0.7}
+                  style={styles.recentChip}
+                  onPress={() => selectExercise(name)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${name}`}
+                >
                   <Text style={styles.recentChipText}>{name}</Text>
                 </TouchableOpacity>
               ))}
@@ -338,47 +490,88 @@ export default function WorkoutScreen() {
             <Text style={styles.label}>Reps</Text>
             <TextInput
               ref={repsRef}
-              style={[styles.input, fieldErrors.reps && styles.inputError]}
+              style={[
+                styles.input,
+                focused === 'reps' && styles.inputFocused,
+                fieldErrors.reps && styles.inputError,
+              ]}
               placeholder="10"
               placeholderTextColor={colors.textMuted}
               value={reps}
               onChangeText={(v) => { setReps(v); setError(''); setFieldErrors({}) }}
+              onFocus={() => setFocused('reps')}
+              onBlur={() => setFocused(null)}
               keyboardType="number-pad"
               returnKeyType="next"
               onSubmitEditing={() => weightRef.current?.focus()}
+              accessibilityLabel="Reps"
             />
           </View>
 
           <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Weight (kg)</Text>
-            <TextInput
-              ref={weightRef}
-              style={styles.input}
-              placeholder="60"
-              placeholderTextColor={colors.textMuted}
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="decimal-pad"
-              returnKeyType="go"
-              onSubmitEditing={handleSave}
-            />
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>Weight (kg)</Text>
+            </View>
+            <View style={styles.weightInputWrap}>
+              <TextInput
+                ref={weightRef}
+                style={[
+                  styles.input,
+                  styles.weightInput,
+                  focused === 'weight' && styles.inputFocused,
+                ]}
+                placeholder="60"
+                placeholderTextColor={colors.textMuted}
+                value={weight}
+                onChangeText={setWeight}
+                onFocus={() => setFocused('weight')}
+                onBlur={() => setFocused(null)}
+                keyboardType="decimal-pad"
+                returnKeyType="go"
+                onSubmitEditing={handleSave}
+                accessibilityLabel="Weight in kilograms"
+              />
+              <Pressable
+                onPress={() => calcEnabled && setCalcOpen(true)}
+                disabled={!calcEnabled}
+                style={({ pressed }) => [
+                  styles.calcBtn,
+                  !calcEnabled && styles.calcBtnDisabled,
+                  pressed && calcEnabled && { opacity: 0.6 },
+                ]}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel="Open plate calculator"
+              >
+                <Ionicons
+                  name="calculator-outline"
+                  size={iconSize.md}
+                  color={calcEnabled ? colors.accent : colors.textMuted}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+        <Pressable
           onPress={handleSave}
           disabled={saving}
+          style={({ pressed }) => [
+            styles.saveBtn,
+            saving && { opacity: 0.6 },
+            pressed && !saving && { transform: [{ scale: 0.98 }], opacity: 0.9 },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Save workout"
         >
-          <Ionicons name="barbell-outline" size={18} color={colors.black} style={{ marginRight: 8 }} />
+          <Ionicons name="barbell-outline" size={iconSize.sm + 2} color={colors.black} style={{ marginRight: spacing.sm }} />
           <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Workout'}</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {justSaved ? (
-        <View style={styles.savedBanner}>
-          <Ionicons name="checkmark-circle" size={18} color={colors.green} />
+        <View style={styles.savedBanner} accessibilityLiveRegion="polite">
+          <Ionicons name="checkmark-circle" size={iconSize.sm + 2} color={colors.green} />
           <Text style={styles.savedBannerText}>Saved! Log another or keep going.</Text>
         </View>
       ) : null}
@@ -386,25 +579,54 @@ export default function WorkoutScreen() {
       {todaysLog.length > 0 ? (
         <View style={styles.todaysLogSection}>
           <View style={styles.todaysLogHeader}>
-            <Ionicons name="list-outline" size={16} color={colors.textSecondary} />
+            <Ionicons name="list-outline" size={iconSize.sm} color={colors.textSecondary} />
             <Text style={styles.todaysLogTitle}>Today's Log ({todaysLog.length})</Text>
           </View>
-          {todaysLog.map((entry, i) => (
-            <View key={i} style={styles.logRow}>
-              <View style={styles.logDot} />
-              <View style={styles.logInfo}>
-                <Text style={styles.logExercise}>{entry.exercise_name}</Text>
-                <Text style={styles.logDetail}>{entry.reps} reps{entry.weight > 0 ? ` @ ${entry.weight}kg` : ''}</Text>
-              </View>
-            </View>
-          ))}
+          <View style={styles.logCard}>
+            {todaysLog.map((entry, i) => {
+              const last = i === todaysLog.length - 1
+              return (
+                <Pressable
+                  key={i}
+                  onPress={() => refillFromEntry(entry)}
+                  style={({ pressed }) => [
+                    styles.logRow,
+                    !last && styles.logRowBorder,
+                    pressed && { backgroundColor: colors.surfaceLight },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Refill form with ${entry.exercise_name}`}
+                >
+                  <Dot size={10} filled color={colors.green} />
+                  <View style={styles.logInfo}>
+                    <Text style={styles.logExercise}>{entry.exercise_name}</Text>
+                    <Text style={styles.logDetail}>{entry.reps} reps</Text>
+                  </View>
+                  {entry.weight > 0 ? (
+                    <View style={styles.logWeightChip}>
+                      <Text style={styles.logWeightValue}>{entry.weight}</Text>
+                      <Text style={styles.logWeightUnit}>KG</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.logRepsOnly}>×{entry.reps}</Text>
+                  )}
+                </Pressable>
+              )
+            })}
+          </View>
         </View>
       ) : (
         <View style={styles.emptyLogHint}>
-          <Ionicons name="barbell-outline" size={20} color={colors.textMuted} />
+          <Ionicons name="barbell-outline" size={iconSize.md} color={colors.textMuted} />
           <Text style={styles.emptyLogText}>Your logged workouts will appear here</Text>
         </View>
       )}
+
+      <PlateCalculator
+        visible={calcOpen}
+        onClose={() => setCalcOpen(false)}
+        totalWeight={weight}
+      />
     </ScrollView>
   )
 }

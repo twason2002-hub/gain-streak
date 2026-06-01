@@ -6,8 +6,18 @@ import { useAuth } from '../../lib/AuthContext'
 import { calculateStreak, getWeekId } from '../../lib/streak'
 import { withTimeout } from '../../lib/supabaseHelpers'
 import { getDummyWorkouts } from '../../lib/seedData'
-import { colors, spacing, radii } from '../../constants/theme'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  letterSpacing,
+  shadows,
+  iconSize,
+} from '../../constants/theme'
 import Flame from '../../components/Flame'
+import Dot from '../../components/Dot'
+import GlowCircle from '../../components/GlowCircle'
 
 const styles = StyleSheet.create({
   container: {
@@ -38,46 +48,63 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   errorSub: {
     fontSize: 14,
     color: colors.textMuted,
-    marginBottom: 24,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
   },
   retryBtn: {
     backgroundColor: colors.accent,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md - 2,
     borderRadius: radii.lg,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 48,
   },
   retryBtnText: {
     color: colors.black,
     fontSize: 16,
     fontWeight: '800',
   },
+  demoPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    backgroundColor: colors.orange + '15',
+    borderColor: colors.orange + '50',
+    borderWidth: 1,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
+    marginBottom: spacing.sm + spacing.xs,
+  },
+  demoPillText: {
+    fontSize: 11,
+    color: colors.orange,
+    fontWeight: '800',
+    letterSpacing: letterSpacing.normal,
+    textTransform: 'uppercase',
+  },
   title: {
-    fontSize: 28,
-    fontWeight: '950',
+    ...typography.h2,
     color: colors.text,
-    letterSpacing: -0.5,
     textTransform: 'uppercase',
   },
   subtitle: {
-    fontSize: 13,
+    ...typography.label,
     color: colors.textSecondary,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.lg,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
     marginBottom: spacing.md,
@@ -85,14 +112,14 @@ const styles = StyleSheet.create({
   weekRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   weekRowCurrent: {
     backgroundColor: colors.accentDim,
   },
   weekRowBorder: {
-    borderBottomWidth: 1.5,
+    borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   weekLabelArea: {
@@ -108,24 +135,14 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: letterSpacing.normal,
     marginTop: 2,
   },
   weekBar: {
     flex: 1,
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     justifyContent: 'center',
-  },
-  weekDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-  },
-  weekDotEmpty: {
-    backgroundColor: colors.surfaceLight,
-    borderColor: colors.border,
   },
   weekCount: {
     width: 36,
@@ -135,8 +152,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   emptyState: {
-    paddingVertical: 48,
+    paddingVertical: spacing.xxl,
     alignItems: 'center',
+    gap: spacing.md,
   },
   emptyText: {
     fontSize: 16,
@@ -146,22 +164,25 @@ const styles = StyleSheet.create({
   emptySub: {
     fontSize: 14,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   summaryCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
     padding: spacing.lg,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderTopWidth: 1,
+    borderTopColor: colors.accent + '20',
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     marginBottom: spacing.xl,
   },
   summaryTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.label,
     color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.md,
   },
   summaryRow: {
@@ -179,19 +200,20 @@ const styles = StyleSheet.create({
   },
   summaryNumber: {
     fontSize: 44,
-    fontWeight: '950',
+    fontWeight: '900',
+    lineHeight: 50,
     color: colors.accent,
     textShadowColor: colors.accentGlow,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
   },
   summaryLabel: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.xs,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
   },
   summaryDivider: {
     width: 1,
@@ -207,6 +229,7 @@ export default function ProgressScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
   const [fetchError, setFetchError] = useState('')
+  const [usingDemoData, setUsingDemoData] = useState(false)
 
   async function fetchData() {
     try {
@@ -227,11 +250,12 @@ export default function ProgressScreen() {
         data = null
       }
 
-      const workouts = data || getDummyWorkouts()
+      const ws = data || getDummyWorkouts()
+      setUsingDemoData(data === null)
       console.log('[Progress] Data source:', data ? 'supabase' : 'dummy')
       setFetchError('')
-      setWorkouts(workouts)
-      setStreakData(calculateStreak(workouts, 3))
+      setWorkouts(ws)
+      setStreakData(calculateStreak(ws, 3))
     } catch (e) {
       console.log('[Progress] Outer catch:', e?.message || e)
       setFetchError(e.message || 'An unexpected error occurred')
@@ -279,11 +303,17 @@ export default function ProgressScreen() {
   if (fetchError) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.red} style={{ marginBottom: 16 }} />
+        <Ionicons name="alert-circle-outline" size={iconSize.xl + 20} color={colors.red} style={{ marginBottom: spacing.md }} />
         <Text style={styles.errorTitle}>Something went wrong</Text>
         <Text style={styles.errorSub}>{fetchError}</Text>
-        <TouchableOpacity activeOpacity={0.8} style={styles.retryBtn} onPress={fetchData}>
-          <Ionicons name="refresh-outline" size={18} color={colors.black} style={{ marginRight: 8 }} />
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.retryBtn}
+          onPress={fetchData}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading progress"
+        >
+          <Ionicons name="refresh-outline" size={iconSize.sm + 2} color={colors.black} style={{ marginRight: spacing.sm }} />
           <Text style={styles.retryBtnText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -298,6 +328,13 @@ export default function ProgressScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await fetchData(); setRefreshing(false) }} tintColor={colors.accent} />
       }
     >
+      {usingDemoData ? (
+        <View style={styles.demoPill}>
+          <Ionicons name="cloud-offline-outline" size={iconSize.sm - 2} color={colors.orange} />
+          <Text style={styles.demoPillText}>Showing demo data</Text>
+        </View>
+      ) : null}
+
       <Text style={styles.title}>Progress</Text>
       {sortedWeeks.length > 0 ? (
         <Text style={styles.subtitle}>Last {sortedWeeks.length} weeks</Text>
@@ -320,12 +357,11 @@ export default function ProgressScreen() {
               </View>
               <View style={styles.weekBar}>
                 {[1, 2, 3].map(d => (
-                  <View
+                  <Dot
                     key={d}
-                    style={[
-                      styles.weekDot,
-                      d <= days ? { backgroundColor: colors.green, borderColor: colors.green } : styles.weekDotEmpty,
-                    ]}
+                    size={24}
+                    filled={d <= days}
+                    color={colors.green}
                   />
                 ))}
               </View>
@@ -338,7 +374,9 @@ export default function ProgressScreen() {
 
         {sortedWeeks.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="analytics-outline" size={40} color={colors.textMuted} style={{ marginBottom: 12 }} />
+            <GlowCircle size={64} color={colors.accent}>
+              <Ionicons name="analytics-outline" size={iconSize.xl} color={colors.accent} />
+            </GlowCircle>
             <Text style={styles.emptyText}>No workouts yet</Text>
             <Text style={styles.emptySub}>Log your first workout to start tracking</Text>
           </View>
@@ -352,7 +390,7 @@ export default function ProgressScreen() {
             <View style={styles.summaryItem}>
               <View style={styles.summaryFlameRow}>
                 <Flame streak={streakData.streak} size={16} />
-                <Text style={[styles.summaryNumber, { marginLeft: 6 }]}>{streakData.streak}</Text>
+                <Text style={[styles.summaryNumber, { marginLeft: spacing.xs + 2 }]}>{streakData.streak}</Text>
               </View>
               <Text style={styles.summaryLabel}>Week streak</Text>
             </View>

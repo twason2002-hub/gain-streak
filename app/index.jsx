@@ -3,14 +3,22 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../lib/AuthContext'
-import { colors, spacing, radii } from '../constants/theme'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  letterSpacing,
+  shadows,
+  iconSize,
+} from '../constants/theme'
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.lg,
   },
   topGradient: {
     position: 'absolute',
@@ -26,14 +34,14 @@ const styles = StyleSheet.create({
   },
   hero: {
     alignItems: 'center',
-    marginBottom: 64,
+    marginBottom: spacing.xxl + spacing.md,
   },
   logoBadgeContainer: {
     width: 96,
     height: 96,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: spacing.lg + spacing.xs,
   },
   outerGlow: {
     position: 'absolute',
@@ -53,18 +61,12 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+    ...shadows.glow(colors.accent),
   },
   title: {
-    fontSize: 44,
-    fontWeight: '950',
+    ...typography.h1,
     color: colors.text,
-    marginBottom: 12,
-    letterSpacing: -1.5,
+    marginBottom: spacing.sm + spacing.xs,
     textTransform: 'uppercase',
   },
   subtitle: {
@@ -72,45 +74,46 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: spacing.sm + 2,
     opacity: 0.9,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.sm + spacing.xs,
+    lineHeight: 24,
   },
   tagline: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.md + spacing.xs,
     lineHeight: 20,
   },
   actions: {
-    gap: 14,
+    gap: spacing.md,
   },
   primaryBtn: {
     backgroundColor: colors.accent,
-    paddingVertical: 18,
+    minHeight: 56,
+    paddingVertical: spacing.md + 2,
     borderRadius: radii.lg,
     alignItems: 'center',
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    justifyContent: 'center',
+    ...shadows.button,
   },
   primaryText: {
     color: colors.black,
     fontSize: 17,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
     textTransform: 'uppercase',
   },
   secondaryBtn: {
     backgroundColor: colors.surface,
-    paddingVertical: 18,
+    minHeight: 56,
+    paddingVertical: spacing.md + 2,
     borderRadius: radii.lg,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.accent + '55',
   },
   secondaryText: {
     color: colors.text,
@@ -140,7 +143,7 @@ export default function HomeScreen() {
         <View style={styles.logoBadgeContainer}>
           <View style={styles.outerGlow} />
           <View style={styles.logoRing}>
-            <Ionicons name="flash" size={38} color={colors.accent} />
+            <Ionicons name="flash" size={iconSize.xl + 10} color={colors.accent} />
           </View>
         </View>
 
@@ -150,11 +153,23 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity activeOpacity={0.85} style={styles.primaryBtn} onPress={() => router.push('/login')}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.primaryBtn}
+          onPress={() => router.push('/login')}
+          accessibilityRole="button"
+          accessibilityLabel="Log in"
+        >
           <Text style={styles.primaryText}>Log In</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.75} style={styles.secondaryBtn} onPress={() => router.push('/signup')}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.secondaryBtn}
+          onPress={() => router.push('/signup')}
+          accessibilityRole="button"
+          accessibilityLabel="Create account"
+        >
           <Text style={styles.secondaryText}>Create Account</Text>
         </TouchableOpacity>
       </View>

@@ -3,7 +3,16 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, ScrollVi
 import { useRouter } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { colors, spacing, radii } from '../constants/theme'
+import { calculateStreak } from '../lib/streak'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  letterSpacing,
+  shadows,
+} from '../constants/theme'
+import StreakHero from '../components/StreakHero'
 
 const styles = StyleSheet.create({
   container: {
@@ -12,7 +21,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: 60,
+    paddingBottom: spacing.xxl,
   },
   loadingContainer: {
     flex: 1,
@@ -29,67 +38,71 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '900',
+    ...typography.h2,
     color: colors.text,
-    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+    lineHeight: 20,
+  },
+  heroWrap: {
     marginBottom: spacing.lg,
-    marginTop: 4,
   },
   errorBox: {
     backgroundColor: colors.dangerDim,
     borderRadius: radii.md,
-    padding: 14,
-    marginBottom: 20,
+    padding: spacing.md,
+    marginBottom: spacing.md + spacing.xs,
     borderWidth: 1,
     borderColor: colors.danger + '40',
   },
   errorText: {
-    color: colors.red,
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '600',
+    lineHeight: 20,
   },
   form: {
-    gap: 20,
+    gap: spacing.md + spacing.xs,
   },
   inputGroup: {
-    gap: 8,
+    gap: spacing.sm,
   },
   row: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing.sm + 2,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '700',
+    ...typography.label,
     color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    padding: 14,
+    padding: spacing.md - 2,
     fontSize: 16,
     color: colors.text,
     fontWeight: '600',
   },
+  inputFocused: {
+    borderColor: colors.accent,
+    borderWidth: 2,
+  },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
-    paddingTop: 14,
+    paddingTop: spacing.md - 2,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginVertical: 4,
+    gap: spacing.sm + spacing.xs,
+    marginVertical: spacing.xs,
   },
   sectionLine: {
     flex: 1,
@@ -97,29 +110,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.label,
     color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   saveBtn: {
     backgroundColor: colors.accent,
-    paddingVertical: 18,
+    minHeight: 56,
+    paddingVertical: spacing.md + 2,
     borderRadius: radii.lg,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    ...shadows.button,
   },
   saveText: {
     color: colors.black,
     fontSize: 17,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
   },
   cancelBtn: {
-    paddingVertical: 16,
+    minHeight: 48,
+    paddingVertical: spacing.md,
     borderRadius: radii.lg,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -140,20 +155,29 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [focused, setFocused] = useState(null)
+  const [streakData, setStreakData] = useState({ streak: 0, totalCompleteWeeks: 0, currentWeekDays: 0 })
   const router = useRouter()
 
   useEffect(() => {
     async function loadProfile() {
       if (!user) return
       try {
-        const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
-        if (error) { setError(error.message); return }
+        const [profileResult, workoutsResult] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+          supabase.from('workouts').select('date').eq('user_id', user.id),
+        ])
+        if (profileResult.error) { setError(profileResult.error.message); return }
+        const data = profileResult.data
         if (data) {
           setDisplayName(data.display_name || '')
           setBio(data.bio || '')
           setAge(data.age ? String(data.age) : '')
           setHeight(data.height_cm ? String(data.height_cm) : '')
           setWeight(data.weight_kg ? String(data.weight_kg) : '')
+        }
+        if (workoutsResult.data) {
+          setStreakData(calculateStreak(workoutsResult.data, 3))
         }
       } catch (e) {
         setError(e.message || 'An unexpected error occurred')
@@ -194,6 +218,11 @@ export default function EditProfileScreen() {
     )
   }
 
+  const inputStyle = (key) => [
+    styles.input,
+    focused === key && styles.inputFocused,
+  ]
+
   return (
     <ScrollView
       style={styles.container}
@@ -203,8 +232,16 @@ export default function EditProfileScreen() {
       <Text style={styles.title}>Edit Profile</Text>
       <Text style={styles.subtitle}>Update your athlete profile</Text>
 
+      <View style={styles.heroWrap}>
+        <StreakHero
+          streak={streakData.streak}
+          totalWeeks={streakData.totalCompleteWeeks}
+          size="sm"
+        />
+      </View>
+
       {error ? (
-        <View style={styles.errorBox}>
+        <View style={styles.errorBox} accessibilityLiveRegion="polite">
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
@@ -213,25 +250,31 @@ export default function EditProfileScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Display Name</Text>
           <TextInput
-            style={styles.input}
+            style={inputStyle('displayName')}
             placeholder="Your name"
             placeholderTextColor={colors.textMuted}
             value={displayName}
             onChangeText={setDisplayName}
+            onFocus={() => setFocused('displayName')}
+            onBlur={() => setFocused(null)}
             returnKeyType="next"
+            accessibilityLabel="Display name"
           />
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Bio</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[...inputStyle('bio'), styles.textArea]}
             placeholder="Tell your gym story..."
             placeholderTextColor={colors.textMuted}
             value={bio}
             onChangeText={setBio}
+            onFocus={() => setFocused('bio')}
+            onBlur={() => setFocused(null)}
             multiline
             numberOfLines={3}
+            accessibilityLabel="Bio"
           />
         </View>
 
@@ -245,48 +288,65 @@ export default function EditProfileScreen() {
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>Age</Text>
             <TextInput
-              style={styles.input}
+              style={inputStyle('age')}
               placeholder="25"
               placeholderTextColor={colors.textMuted}
               value={age}
               onChangeText={setAge}
+              onFocus={() => setFocused('age')}
+              onBlur={() => setFocused(null)}
               keyboardType="number-pad"
+              accessibilityLabel="Age"
             />
           </View>
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>Height (cm)</Text>
             <TextInput
-              style={styles.input}
+              style={inputStyle('height')}
               placeholder="175"
               placeholderTextColor={colors.textMuted}
               value={height}
               onChangeText={setHeight}
+              onFocus={() => setFocused('height')}
+              onBlur={() => setFocused(null)}
               keyboardType="number-pad"
+              accessibilityLabel="Height in centimeters"
             />
           </View>
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>Weight (kg)</Text>
             <TextInput
-              style={styles.input}
+              style={inputStyle('weight')}
               placeholder="80"
               placeholderTextColor={colors.textMuted}
               value={weight}
               onChangeText={setWeight}
+              onFocus={() => setFocused('weight')}
+              onBlur={() => setFocused(null)}
               keyboardType="decimal-pad"
+              accessibilityLabel="Weight in kilograms"
             />
           </View>
         </View>
 
         <TouchableOpacity
-          activeOpacity={0.8}
+          activeOpacity={0.85}
           style={[styles.saveBtn, saving && { opacity: 0.6 }]}
           onPress={handleSave}
           disabled={saving}
+          accessibilityRole="button"
+          accessibilityLabel="Save profile"
         >
           <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Profile'}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} style={styles.cancelBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.cancelBtn}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel and go back"
+        >
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
       </View>

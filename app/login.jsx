@@ -3,7 +3,15 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, Keyboard
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
-import { colors, spacing, radii } from '../constants/theme'
+import {
+  colors,
+  spacing,
+  radii,
+  typography,
+  letterSpacing,
+  shadows,
+  iconSize,
+} from '../constants/theme'
 import { makeRedirectUri } from 'expo-auth-session'
 import * as WebBrowser from 'expo-web-browser'
 
@@ -17,77 +25,81 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.lg,
   },
   header: {
-    marginBottom: 40,
+    marginBottom: spacing.xl + spacing.sm,
   },
   title: {
+    ...typography.h2,
     fontSize: 32,
-    fontWeight: '900',
     color: colors.text,
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: 16,
+    lineHeight: 22,
     color: colors.textSecondary,
   },
   errorBox: {
     backgroundColor: colors.dangerDim,
     borderRadius: radii.md,
-    padding: 14,
-    marginBottom: 20,
+    padding: spacing.md,
+    marginBottom: spacing.md + spacing.xs,
     borderWidth: 1,
     borderColor: colors.danger + '40',
   },
   errorText: {
-    color: colors.red,
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '600',
+    lineHeight: 20,
   },
   form: {
-    gap: 20,
+    gap: spacing.md + spacing.xs,
   },
   inputGroup: {
-    gap: 8,
+    gap: spacing.sm,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...typography.label,
     color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    padding: 16,
+    padding: spacing.md,
     fontSize: 16,
     color: colors.text,
+  },
+  inputFocused: {
+    borderColor: colors.accent,
+    borderWidth: 2,
   },
   inputError: {
     borderColor: colors.danger,
   },
   button: {
     backgroundColor: colors.accent,
-    padding: 18,
+    minHeight: 56,
+    paddingVertical: spacing.md + 2,
     borderRadius: radii.lg,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    ...shadows.button,
   },
   buttonText: {
     color: colors.black,
     fontSize: 17,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
   },
   linkArea: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 32,
+    marginTop: spacing.xl,
   },
   linkText: {
     color: colors.textMuted,
@@ -101,8 +113,8 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 24,
+    gap: spacing.sm + spacing.xs,
+    marginTop: spacing.lg,
   },
   dividerLine: {
     flex: 1,
@@ -114,18 +126,19 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacing.tight,
   },
   googleButton: {
     backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.borderLight,
-    padding: 16,
+    minHeight: 56,
+    paddingVertical: spacing.md,
     borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   googleButtonText: {
     color: colors.text,
@@ -140,6 +153,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
+  const [focused, setFocused] = useState(null)
   const passwordRef = useRef(null)
   const router = useRouter()
 
@@ -196,7 +210,7 @@ export default function LoginScreen() {
         </View>
 
         {error ? (
-          <View style={styles.errorBox}>
+          <View style={styles.errorBox} accessibilityLiveRegion="polite">
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -205,16 +219,23 @@ export default function LoginScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[styles.input, fieldErrors.email && styles.inputError]}
+              style={[
+                styles.input,
+                focused === 'email' && styles.inputFocused,
+                fieldErrors.email && styles.inputError,
+              ]}
               placeholder="you@example.com"
               placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={(v) => { setEmail(v); setError(''); setFieldErrors({}) }}
+              onFocus={() => setFocused('email')}
+              onBlur={() => setFocused(null)}
               autoCapitalize="none"
               keyboardType="email-address"
               returnKeyType="next"
               autoFocus
               onSubmitEditing={() => passwordRef.current?.focus()}
+              accessibilityLabel="Email address"
             />
           </View>
 
@@ -222,23 +243,32 @@ export default function LoginScreen() {
             <Text style={styles.label}>Password</Text>
             <TextInput
               ref={passwordRef}
-              style={[styles.input, fieldErrors.password && styles.inputError]}
+              style={[
+                styles.input,
+                focused === 'password' && styles.inputFocused,
+                fieldErrors.password && styles.inputError,
+              ]}
               placeholder="Your password"
               placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={(v) => { setPassword(v); setError(''); setFieldErrors({}) }}
+              onFocus={() => setFocused('password')}
+              onBlur={() => setFocused(null)}
               secureTextEntry
               returnKeyType="go"
               textContentType="password"
               onSubmitEditing={handleLogin}
+              accessibilityLabel="Password"
             />
           </View>
 
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             style={[styles.button, loading && { opacity: 0.6 }]}
             onPress={handleLogin}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Log in"
           >
             <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
           </TouchableOpacity>
@@ -250,17 +280,25 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             style={styles.googleButton}
             onPress={handleGoogleLogin}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
           >
-            <Ionicons name="logo-google" size={20} color={colors.text} style={{ marginRight: 10 }} />
+            <Ionicons name="logo-google" size={iconSize.md} color={colors.text} style={{ marginRight: spacing.sm + 2 }} />
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity activeOpacity={0.7} style={styles.linkArea} onPress={() => router.push('/signup')}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.linkArea}
+          onPress={() => router.push('/signup')}
+          accessibilityRole="link"
+          accessibilityLabel="Sign up for an account"
+        >
           <Text style={styles.linkText}>No account? </Text>
           <Text style={styles.linkAccent}>Sign up</Text>
         </TouchableOpacity>
