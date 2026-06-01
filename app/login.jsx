@@ -148,8 +148,8 @@ const styles = StyleSheet.create({
 })
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('demo@gainstreak.app')
-  const [password, setPassword] = useState('demo123')
+  const [email, setEmail] = useState('test@gainstreak.app')
+  const [password, setPassword] = useState('test1234')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
