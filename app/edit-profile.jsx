@@ -163,9 +163,9 @@ export default function EditProfileScreen() {
     async function loadProfile() {
       if (!user) return
       try {
-        const [profileResult, workoutsResult] = await Promise.all([
+        const [profileResult, sessionsResult] = await Promise.all([
           supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-          supabase.from('workouts').select('date').eq('user_id', user.id),
+          supabase.from('workout_sessions').select('started_at, completed_at').eq('user_id', user.id).in('status', ['completed', 'auto_completed']),
         ])
         if (profileResult.error) { setError(profileResult.error.message); return }
         const data = profileResult.data
@@ -176,8 +176,8 @@ export default function EditProfileScreen() {
           setHeight(data.height_cm ? String(data.height_cm) : '')
           setWeight(data.weight_kg ? String(data.weight_kg) : '')
         }
-        if (workoutsResult.data) {
-          setStreakData(calculateStreak(workoutsResult.data, 3))
+        if (sessionsResult.data) {
+          setStreakData(calculateStreak(sessionsResult.data, 3))
         }
       } catch (e) {
         setError(e.message || 'An unexpected error occurred')
