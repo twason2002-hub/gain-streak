@@ -333,6 +333,7 @@ export default function DashboardScreen() {
   const [nextBadge, setNextBadge] = useState(null)
   const [badgeProgress, setBadgeProgress] = useState(0)
   const [usingDemoData, setUsingDemoData] = useState(false)
+  const [isGuest, setIsGuest] = useState(false)
   const router = useRouter()
 
   async function fetchData() {
@@ -349,7 +350,7 @@ export default function DashboardScreen() {
       console.log('[Dashboard] Fetching profile for user:', user.id)
       try {
         const result = await withTimeout(
-          supabase.from('profiles').select('username, display_name').eq('id', user.id).maybeSingle(),
+          supabase.from('profiles').select('username, display_name, is_guest').eq('id', user.id).maybeSingle(),
           10000
         )
         profile = result.data
@@ -361,6 +362,7 @@ export default function DashboardScreen() {
 
       if (profile) {
         setUsername(profile?.display_name || profile?.username || 'Athlete')
+        setIsGuest(!!profile?.is_guest)
       } else {
         console.log('[Dashboard] Using dummy profile')
         const fallback = getDummyProfile()
@@ -484,6 +486,11 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View style={styles.greetingRow}>
           <Text style={styles.greeting}>Hey, {username}</Text>
+          {isGuest && (
+            <View style={{ backgroundColor: colors.orange + '20', paddingHorizontal: spacing.xs + 2, paddingVertical: 2, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.orange + '50' }}>
+              <Text style={{ fontSize: 9, fontWeight: '800', color: colors.orange, textTransform: 'uppercase' }}>Guest</Text>
+            </View>
+          )}
           {streakData.streak > 0 && <Flame streak={streakData.streak} size={16} />}
         </View>
         <Text style={styles.dateText}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
@@ -495,7 +502,7 @@ export default function DashboardScreen() {
             <Ionicons name="barbell-outline" size={iconSize.xl + 4} color={colors.accent} />
           </GlowCircle>
           <Text style={styles.emptyTitle}>No workouts yet</Text>
-          <Text style={styles.emptySub}>Log your first workout to start your streak</Text>
+          <Text style={styles.emptySub}>Start your first workout to begin your streak</Text>
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.emptyBtn}
@@ -503,7 +510,7 @@ export default function DashboardScreen() {
             accessibilityRole="button"
             accessibilityLabel="Log your first workout"
           >
-            <Text style={styles.emptyBtnText}>Log First Workout</Text>
+            <Text style={styles.emptyBtnText}>Start First Workout</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -587,7 +594,7 @@ export default function DashboardScreen() {
             accessibilityLabel="Log workout"
           >
             <Ionicons name="barbell" size={iconSize.md} color={colors.black} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.workoutBtnText}>Log Workout</Text>
+            <Text style={styles.workoutBtnText}>Start Workout</Text>
           </Pressable>
 
           {nextBadge && (

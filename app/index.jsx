@@ -1,8 +1,10 @@
-import { useEffect } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../lib/AuthContext'
+import { signInAsGuest } from '../lib/guestAuth'
+import { supabase } from '../lib/supabase'
 import {
   colors,
   spacing,
@@ -120,11 +122,46 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
   },
+  guestBtn: {
+    minHeight: 56,
+    paddingVertical: spacing.md + 2,
+    borderRadius: radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceLight,
+  },
+  guestText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginVertical: spacing.xs,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
 })
 
 export default function HomeScreen() {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const [guestLoading, setGuestLoading] = useState(false)
+  const [guestError, setGuestError] = useState('')
 
   useEffect(() => {
     if (!loading && user) {
@@ -132,6 +169,18 @@ export default function HomeScreen() {
       router.replace('/(tabs)/dashboard')
     }
   }, [user, loading])
+
+  async function handleGuestSignIn() {
+    setGuestLoading(true)
+    setGuestError('')
+    try {
+      await signInAsGuest(supabase)
+    } catch (e) {
+      setGuestError(e.message || 'Failed to sign in as guest')
+    } finally {
+      setGuestLoading(false)
+    }
+  }
 
   if (loading) return null
 
@@ -172,6 +221,36 @@ export default function HomeScreen() {
         >
           <Text style={styles.secondaryText}>Create Account</Text>
         </TouchableOpacity>
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.guestBtn}
+          onPress={handleGuestSignIn}
+          disabled={guestLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Continue as guest"
+        >
+          {guestLoading ? (
+            <ActivityIndicator color={colors.textSecondary} />
+          ) : (
+            <>
+              <Ionicons name="person-outline" size={iconSize.sm} color={colors.textSecondary} style={{ marginRight: spacing.sm }} />
+              <Text style={styles.guestText}>Continue as Guest</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {guestError ? (
+          <Text style={{ color: colors.danger, fontSize: 13, textAlign: 'center', marginTop: spacing.sm, fontWeight: '600' }}>
+            {guestError}
+          </Text>
+        ) : null}
       </View>
     </View>
   )

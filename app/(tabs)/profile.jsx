@@ -151,6 +151,7 @@ export default function ProfileScreen() {
   const memberSince = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : ''
+  const isGuest = profile?.is_guest || false
 
   if (initialLoad && profile === null) {
     return (
@@ -201,7 +202,14 @@ export default function ProfileScreen() {
         <GlowCircle size={88} color={colors.accent} background={colors.accent}>
           <Text style={styles.avatarText}>{initial}</Text>
         </GlowCircle>
-        <Text style={styles.name}>{profile?.display_name || profile?.username || 'Athlete'}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <Text style={styles.name}>{profile?.display_name || profile?.username || 'Athlete'}</Text>
+          {isGuest && (
+            <View style={{ backgroundColor: colors.orange + '20', paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.orange + '50' }}>
+              <Text style={{ fontSize: 10, fontWeight: '800', color: colors.orange, textTransform: 'uppercase' }}>Guest</Text>
+            </View>
+          )}
+        </View>
         {memberSince ? <Text style={styles.memberSince}>Member since {memberSince}</Text> : null}
         {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
 

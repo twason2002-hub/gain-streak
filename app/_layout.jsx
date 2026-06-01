@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="signup" options={{ title: 'Sign Up', presentation: 'modal', headerBackTitle: 'Back' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="edit-profile" options={{ title: 'Edit Profile', presentation: 'modal', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="exercise-chart" options={{ title: 'Exercise Progress', headerBackTitle: 'Back' }} />
       </Stack>
     </AuthProvider>
   )
