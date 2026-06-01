@@ -10,26 +10,29 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session)
-        setUser(session.user ?? null)
-        setAccessToken(session.access_token)
-      }
-    }).catch(() => {})
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.access_token) {
         setAccessToken(session.access_token)
       }
       setLoading(false)
+    }).catch(() => {
+      setLoading(false)
     })
 
-    const timer = setTimeout(() => setLoading(false), 3000)
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[AuthContext] onAuthStateChange:', event, session ? 'has session' : 'no session')
+      setSession(session)
+      setUser(session?.user ?? null)
+      if (session?.access_token) {
+        setAccessToken(session.access_token)
+      } else {
+        setAccessToken(null)
+      }
+      setLoading(false)
+    })
 
     return () => {
-      clearTimeout(timer)
       data?.subscription?.unsubscribe()
     }
   }, [])

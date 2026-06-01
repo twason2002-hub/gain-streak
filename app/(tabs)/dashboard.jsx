@@ -369,16 +369,20 @@ export default function DashboardScreen() {
         setUsername(fallback.display_name)
       }
 
-      console.log('[Dashboard] Fetching workouts')
+      console.log('[Dashboard] Fetching completed workout sessions')
       try {
         const result = await withTimeout(
-          supabase.from('workouts').select('date').eq('user_id', user.id).order('date', { ascending: false }),
+          supabase.from('workout_sessions')
+            .select('id, started_at, completed_at, status')
+            .eq('user_id', user.id)
+            .in('status', ['completed', 'auto_completed'])
+            .order('started_at', { ascending: false }),
           10000
         )
         workoutData = result.data
-        console.log('[Dashboard] Workouts result count:', workoutData?.length ?? 'null')
+        console.log('[Dashboard] Sessions result count:', workoutData?.length ?? 'null')
       } catch (e) {
-        console.log('[Dashboard] Workouts query error/catch:', e?.message || e)
+        console.log('[Dashboard] Sessions query error/catch:', e?.message || e)
         workoutData = null
       }
 
@@ -435,8 +439,9 @@ export default function DashboardScreen() {
 
   const daysWithWorkouts = new Set()
   ;(workouts || []).forEach(w => {
-    if (getWeekId(new Date(w.date)) === currentWeekId) {
-      daysWithWorkouts.add(new Date(w.date).toISOString().split('T')[0])
+    const dateStr = w.completed_at ? new Date(w.completed_at).toISOString().split('T')[0] : new Date(w.started_at).toISOString().split('T')[0]
+    if (getWeekId(new Date(dateStr)) === currentWeekId) {
+      daysWithWorkouts.add(dateStr)
     }
   })
 

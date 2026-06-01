@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { supabase } from '../../lib/supabase'
+import { supabase, setAccessToken } from '../../lib/supabase'
 import { useAuth } from '../../lib/AuthContext'
 import { calculateStreak } from '../../lib/streak'
 import { getBadge, getNextBadge, getProgressToNextBadge } from '../../lib/badges'
@@ -57,16 +57,16 @@ export default function ProfileScreen() {
         profileData = null
       }
 
-      console.log('[Profile] Fetching workouts')
+      console.log('[Profile] Fetching workout sets')
       try {
         const result = await withTimeout(
-          supabase.from('workouts').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+          supabase.from('workout_sets').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
           10000
         )
         workoutData = result.data
-        console.log('[Profile] Workouts count:', workoutData?.length ?? 'null')
+        console.log('[Profile] Workout sets count:', workoutData?.length ?? 'null')
       } catch (e) {
-        console.log('[Profile] Workouts error:', e?.message || e)
+        console.log('[Profile] Workout sets error:', e?.message || e)
         workoutData = null
       }
 
@@ -132,12 +132,16 @@ export default function ProfileScreen() {
   }, [workouts, prData.exercises])
 
   async function handleLogout() {
-    Alert.alert('Logout', 'Are you sure?', [
+    const msg = isGuest
+      ? 'Signing out will remove your guest account data. Continue?'
+      : 'Are you sure you want to logout?'
+    Alert.alert('Logout', msg, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Logout', style: 'destructive', onPress: async () => {
         try {
           const { error } = await supabase.auth.signOut()
           if (error) { Alert.alert('Logout Failed', error.message); return }
+          setAccessToken(null)
         } catch (e) {
           Alert.alert('Logout Failed', e.message)
           return

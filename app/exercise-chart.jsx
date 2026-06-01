@@ -2,9 +2,9 @@ import { useEffect, useState, useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../lib/AuthContext'
-import { withTimeout } from '../../lib/supabaseHelpers'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/AuthContext'
+import { withTimeout } from '../lib/supabaseHelpers'
 import { LineChart } from 'react-native-chart-kit'
 import {
   colors,
@@ -13,7 +13,7 @@ import {
   typography,
   letterSpacing,
   iconSize,
-} from '../../constants/theme'
+} from '../constants/theme'
 
 const screenWidth = Dimensions.get('window').width
 
