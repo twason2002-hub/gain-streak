@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { supabase, setAccessToken } from '../../lib/supabase'
+import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/AuthContext'
 import { calculateStreak } from '../../lib/streak'
 import { getBadge, getNextBadge, getProgressToNextBadge } from '../../lib/badges'
@@ -23,7 +23,7 @@ import GlowCircle from '../../components/GlowCircle'
 import StreakHero from '../../components/StreakHero'
 
 export default function ProfileScreen() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [profile, setProfile] = useState(null)
   const [workouts, setWorkouts] = useState([])
   const [streakData, setStreakData] = useState({ streak: 0, totalCompleteWeeks: 0, currentWeekDays: 0 })
@@ -138,14 +138,7 @@ export default function ProfileScreen() {
     Alert.alert('Logout', msg, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Logout', style: 'destructive', onPress: async () => {
-        try {
-          const { error } = await supabase.auth.signOut()
-          if (error) { Alert.alert('Logout Failed', error.message); return }
-          setAccessToken(null)
-        } catch (e) {
-          Alert.alert('Logout Failed', e.message)
-          return
-        }
+        await signOut()
         router.replace('/')
       }},
     ])

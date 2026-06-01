@@ -9,19 +9,6 @@ CREATE TABLE profiles (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE workouts (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
-  exercise_name TEXT NOT NULL,
-  reps INTEGER NOT NULL DEFAULT 0,
-  weight DECIMAL(6,2) NOT NULL DEFAULT 0,
-  date DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX idx_workouts_user_date ON workouts(user_id, date);
-CREATE INDEX idx_workouts_user_id ON workouts(user_id);
-
 -- Workout sessions table (groups all exercises in one workout day)
 CREATE TABLE workout_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -57,7 +44,6 @@ CREATE INDEX idx_sets_user_exercise ON workout_sets(user_id, exercise_name);
 CREATE INDEX idx_sets_user_date ON workout_sets(user_id, created_at);
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workout_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workout_sets ENABLE ROW LEVEL SECURITY;
 
@@ -69,15 +55,6 @@ CREATE POLICY "Users can update own profile"
 
 CREATE POLICY "Users can insert own profile"
   ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Users can read own workouts"
-  ON workouts FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own workouts"
-  ON workouts FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own workouts"
-  ON workouts FOR DELETE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can read own workout sessions"
   ON workout_sessions FOR SELECT USING (auth.uid() = user_id);
