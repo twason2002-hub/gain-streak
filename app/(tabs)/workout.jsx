@@ -795,8 +795,8 @@ export default function WorkoutScreen() {
   const todayStats = useMemo(() => {
     const sets = loggedSets.length
     const totalReps = loggedSets.reduce((sum, s) => sum + s.reps, 0)
-    const volume = loggedSets.reduce((sum, s) => sum + s.weight * s.reps, 0)
-    return { sets, reps: totalReps, volume }
+    const exercises = new Set(loggedSets.map(s => s.exercise_name)).size
+    return { sets, reps: totalReps, exercises }
   }, [loggedSets])
 
   const lastSetForCurrentExercise = useMemo(() => {
@@ -838,7 +838,6 @@ export default function WorkoutScreen() {
 
   if (session.status !== 'active') {
     const exercises = [...new Set(loggedSets.map(s => s.exercise_name))]
-    const totalVolume = loggedSets.reduce((sum, s) => sum + s.weight * s.reps, 0)
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Workout Complete</Text>
@@ -848,7 +847,7 @@ export default function WorkoutScreen() {
           <Ionicons name="checkmark-circle" size={iconSize.xl + 16} color={colors.green} style={{ marginBottom: spacing.md }} />
           <Text style={styles.startTitle}>Session {session.status === 'auto_completed' ? 'Auto-' : ''}Completed</Text>
           <Text style={styles.startSub}>
-            {exercises.length} exercise(s), {loggedSets.length} set(s), {Math.round(totalVolume)} kg volume
+            {exercises.length} exercise(s), {loggedSets.length} set(s), {formatTime(elapsed)}
           </Text>
           <TouchableOpacity
             activeOpacity={0.85}
@@ -894,8 +893,8 @@ export default function WorkoutScreen() {
             </View>
             <View style={styles.todayStatDivider} />
             <View style={styles.todayStat}>
-              <Text style={styles.todayStatNumber}>{Math.round(todayStats.volume)}</Text>
-              <Text style={styles.todayStatLabel}>Volume kg</Text>
+              <Text style={styles.todayStatNumber}>{todayStats.exercises}</Text>
+              <Text style={styles.todayStatLabel}>Exercises</Text>
             </View>
           </View>
         ) : null}
