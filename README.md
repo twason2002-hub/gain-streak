@@ -29,6 +29,17 @@ A fitness app that helps you stay consistent — 3 workouts a week, every week.
   </tr>
 </table>
 
+## Demo credentials
+
+Log in with these credentials to explore the app:
+
+| Field | Value |
+|-------|-------|
+| Email | `test@gainstreak.app` |
+| Password | `test1234` |
+
+The demo account has 6 weeks of workout history (18 sessions, 180 sets) across 6 exercises with progressive overload data.
+
 ## What it does
 
 - Track your workouts (exercises, reps, weight)
