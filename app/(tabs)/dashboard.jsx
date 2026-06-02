@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/AuthContext'
 import { calculateStreak, getCurrentWeekRange, getWeekId } from '../../lib/streak'
 import { getBadge, getNextBadge, getProgressToNextBadge } from '../../lib/badges'
-import { withTimeout } from '../../lib/supabaseHelpers'
+import { withTimeout, withRetry } from '../../lib/supabaseHelpers'
 import { getDummyWorkouts, getDummyProfile } from '../../lib/seedData'
 import {
   colors,
@@ -349,9 +349,13 @@ export default function DashboardScreen() {
 
       console.log('[Dashboard] Fetching profile for user:', user.id)
       try {
-        const result = await withTimeout(
-          supabase.from('profiles').select('username, display_name, is_guest').eq('id', user.id).maybeSingle(),
-          10000
+        const result = await withRetry(
+          () => withTimeout(
+            supabase.from('profiles').select('username, display_name, is_guest').eq('id', user.id).maybeSingle(),
+            10000
+          ),
+          3,
+          1000
         )
         if (result.error) {
           console.log('[Dashboard] Profile query error:', result.error.message, result.error.details)
@@ -375,13 +379,17 @@ export default function DashboardScreen() {
 
       console.log('[Dashboard] Fetching completed workout sessions')
       try {
-        const result = await withTimeout(
-          supabase.from('workout_sessions')
-            .select('id, started_at, completed_at, status')
-            .eq('user_id', user.id)
-            .or('status.eq.completed,status.eq.auto_completed')
-            .order('started_at', { ascending: false }),
-          10000
+        const result = await withRetry(
+          () => withTimeout(
+            supabase.from('workout_sessions')
+              .select('id, started_at, completed_at, status')
+              .eq('user_id', user.id)
+              .or('status.eq.completed,status.eq.auto_completed')
+              .order('started_at', { ascending: false }),
+            10000
+          ),
+          3,
+          1000
         )
         if (result.error) {
           console.log('[Dashboard] Sessions query error:', result.error.message)

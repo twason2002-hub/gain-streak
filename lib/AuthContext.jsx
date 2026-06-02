@@ -1,7 +1,19 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { supabase, setAccessToken } from './supabase'
+import { supabase } from './supabase'
 
 const AuthContext = createContext({ session: null, user: null, loading: true, signOut: async () => {} })
+
+async function getSessionWithRetry(retries = 3, delayMs = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const result = await supabase.auth.getSession()
+      return result
+    } catch (e) {
+      if (i === retries - 1) throw e
+      await new Promise(r => setTimeout(r, delayMs * (i + 1)))
+    }
+  }
+}
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
@@ -11,16 +23,11 @@ export function AuthProvider({ children }) {
   const handleSession = useCallback((s) => {
     setSession(s)
     setUser(s?.user ?? null)
-    if (s?.access_token) {
-      setAccessToken(s.access_token)
-    } else {
-      setAccessToken(null)
-    }
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    getSessionWithRetry().then(({ data: { session: s } }) => {
       handleSession(s)
     }).catch(() => {
       setLoading(false)
@@ -41,7 +48,6 @@ export function AuthProvider({ children }) {
     } catch {}
     setSession(null)
     setUser(null)
-    setAccessToken(null)
   }, [])
 
   return (
