@@ -364,6 +364,95 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginTop: spacing.xl,
   },
+
+  historySection: {
+    marginTop: spacing.xl + spacing.md,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  historyTitle: {
+    ...typography.label,
+    color: colors.text,
+    fontSize: 14,
+  },
+  historyCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  historyCardBorder: {
+    marginTop: spacing.sm,
+  },
+  historyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  historyDate: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  historyTime: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  historyExerciseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs + 2,
+  },
+  historyExerciseBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  historyExerciseInfo: {
+    flex: 1,
+  },
+  historyExerciseName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  historyExerciseDetail: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  historyEmpty: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: spacing.lg,
+    fontWeight: '600',
+  },
+  loadMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md - 2,
+    marginTop: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.accent + '40',
+    backgroundColor: colors.accent + '08',
+    minHeight: 44,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.accent,
+  },
 })
 
 export default function WorkoutScreen() {
@@ -388,6 +477,12 @@ export default function WorkoutScreen() {
   const [restPreset, setRestPreset] = useState(REST_TIMER_DEFAULT)
   const [elapsed, setElapsed] = useState(0)
   const [existingPRs, setExistingPRs] = useState({})
+  const [workoutHistory, setWorkoutHistory] = useState([])
+  const [historyPage, setHistoryPage] = useState(1)
+  const [hasMoreHistory, setHasMoreHistory] = useState(true)
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  const HISTORY_PAGE_SIZE = 5
 
   const timerRef = useRef(null)
   const restRef = useRef(null)
@@ -430,6 +525,7 @@ export default function WorkoutScreen() {
     setSession(data)
     loadRecentExercises()
     loadExistingPRs()
+    loadWorkoutHistory(1, false)
   }
 
   async function loadRecentExercises() {
@@ -462,6 +558,58 @@ export default function WorkoutScreen() {
         setExistingPRs(map)
       }
     } catch {}
+  }
+
+  async function loadWorkoutHistory(page = 1, append = false) {
+    if (!user || loadingHistory) return
+    setLoadingHistory(true)
+    try {
+      const from = (page - 1) * HISTORY_PAGE_SIZE
+      const to = from + HISTORY_PAGE_SIZE - 1
+      const { data: sessions, error } = await withTimeout(
+        supabase.from('workout_sessions')
+          .select('id, started_at, completed_at, status, workout_sets(exercise_name, reps, weight, set_number)')
+          .eq('user_id', user.id)
+          .in('status', ['completed', 'auto_completed'])
+          .order('started_at', { ascending: false })
+          .range(from, to),
+        10000
+      )
+      if (error) throw new Error(error.message)
+      if (sessions && sessions.length > 0) {
+        const formatted = sessions.map(s => ({
+          id: s.id,
+          date: s.started_at,
+          completedAt: s.completed_at,
+          exercises: groupSetsByExercise(s.workout_sets || []),
+          totalSets: (s.workout_sets || []).length,
+          totalVolume: (s.workout_sets || []).reduce((sum, ws) => sum + (ws.weight * ws.reps), 0),
+        }))
+        setWorkoutHistory(prev => append ? [...prev, ...formatted] : formatted)
+        setHasMoreHistory(sessions.length === HISTORY_PAGE_SIZE)
+        setHistoryPage(page)
+      } else {
+        setHasMoreHistory(false)
+      }
+    } catch (e) {
+      console.log('[Workout] History load error:', e?.message || e)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  function groupSetsByExercise(sets) {
+    const map = {}
+    sets.forEach(s => {
+      if (!map[s.exercise_name]) map[s.exercise_name] = []
+      map[s.exercise_name].push(s)
+    })
+    return Object.entries(map).map(([name, s]) => ({
+      name,
+      sets: s.length,
+      bestWeight: Math.max(...s.map(x => x.weight || 0)),
+      bestReps: Math.max(...s.map(x => x.reps || 0)),
+    }))
   }
 
   useEffect(() => {
@@ -969,6 +1117,66 @@ export default function WorkoutScreen() {
             <Text style={styles.completeBtnText}>Complete Workout</Text>
           </TouchableOpacity>
         )}
+
+        <View style={styles.historySection}>
+          <View style={styles.historyHeader}>
+            <Ionicons name="calendar-outline" size={iconSize.sm} color={colors.textSecondary} />
+            <Text style={styles.historyTitle}>Recent Workouts</Text>
+          </View>
+
+          {workoutHistory.map((wh, idx) => {
+            const d = new Date(wh.date)
+            const isToday = d.toDateString() === new Date().toDateString()
+            const isYesterday = d.toDateString() === new Date(Date.now() - 86400000).toDateString()
+            const dateLabel = isToday ? 'Today' : isYesterday ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+            const timeLabel = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+
+            return (
+              <View key={wh.id} style={[styles.historyCard, idx > 0 && styles.historyCardBorder]}>
+                <View style={styles.historyCardHeader}>
+                  <View>
+                    <Text style={styles.historyDate}>{dateLabel}</Text>
+                    <Text style={styles.historyTime}>{timeLabel} -- {wh.totalSets} sets, {Math.round(wh.totalVolume)} kg</Text>
+                  </View>
+                  <Ionicons name="checkmark-circle" size={iconSize.md} color={colors.green} />
+                </View>
+                {wh.exercises.map((ex, exIdx) => (
+                  <View key={ex.name} style={[styles.historyExerciseRow, exIdx < wh.exercises.length - 1 && styles.historyExerciseBorder]}>
+                    <View style={styles.historyExerciseInfo}>
+                      <Text style={styles.historyExerciseName}>{ex.name}</Text>
+                      <Text style={styles.historyExerciseDetail}>{ex.sets} set(s) -- best {ex.bestWeight > 0 ? `${ex.bestWeight}kg` : `${ex.bestReps} reps`}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )
+          })}
+
+          {workoutHistory.length === 0 && !loadingHistory && (
+            <Text style={styles.historyEmpty}>No past workouts yet. Complete your first workout to see history here.</Text>
+          )}
+
+          {hasMoreHistory && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={[styles.loadMoreBtn, loadingHistory && { opacity: 0.5 }]}
+              onPress={() => loadWorkoutHistory(historyPage + 1, true)}
+              disabled={loadingHistory}
+            >
+              {loadingHistory ? (
+                <>
+                  <Ionicons name="hourglass-outline" size={iconSize.sm - 2} color={colors.accent} style={{ marginRight: spacing.xs }} />
+                  <Text style={styles.loadMoreText}>Loading...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="chevron-down" size={iconSize.sm - 2} color={colors.accent} style={{ marginRight: spacing.xs }} />
+                  <Text style={styles.loadMoreText}>Load More</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
 
       {restTimerOpen ? (
