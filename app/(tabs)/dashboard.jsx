@@ -175,8 +175,8 @@ const styles = StyleSheet.create({
   weekCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -185,8 +185,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   sectionTitle: {
     fontSize: 14,
@@ -203,8 +203,7 @@ const styles = StyleSheet.create({
   weekGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.xs,
+    marginBottom: spacing.sm,
   },
   dayCol: {
     flex: 1,
@@ -218,9 +217,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   dayDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.surfaceLight,
     borderWidth: 1.5,
     borderColor: colors.borderLight,
@@ -581,7 +580,7 @@ export default function DashboardScreen() {
                       !isPast && !isToday && styles.dayDotFuture,
                     ]}>
                       {isComplete ? (
-                        <Ionicons name="checkmark" size={iconSize.md} color={colors.black} />
+                        <Ionicons name="checkmark" size={iconSize.sm} color={colors.black} />
                       ) : isToday && !isComplete ? (
                         <Ionicons name="ellipse" size={6} color={colors.accent} />
                       ) : null}
