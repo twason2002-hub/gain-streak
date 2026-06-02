@@ -16,6 +16,7 @@ import {
 } from '../constants/theme'
 
 const screenWidth = Dimensions.get('window').width
+const chartWidth = Math.min(screenWidth - spacing.lg * 2 - spacing.md * 2 - 16, 340)
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
@@ -46,6 +47,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing.lg,
+  },
+  chartContainer: {
+    overflow: 'hidden',
+    borderRadius: radii.lg,
+    alignItems: 'center',
   },
   chartTitle: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: spacing.sm },
   chartSubtitle: { fontSize: 11, color: colors.textMuted, marginBottom: spacing.md },
@@ -244,29 +250,33 @@ export default function ExerciseChartScreen() {
             {metric === 'weight' ? 'Max Weight' : metric === 'reps' ? 'Max Reps' : 'Total Volume'}
           </Text>
           <Text style={styles.chartSubtitle}>Progression over time</Text>
-          <LineChart
-            data={chartData}
-            width={screenWidth - spacing.lg * 2 - spacing.md * 2}
-            height={220}
-            chartConfig={{
-              backgroundColor: colors.surface,
-              backgroundGradientFrom: colors.surface,
-              backgroundGradientTo: colors.surface,
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(250, 204, 21, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(163, 163, 163, ${opacity})`,
-              style: { borderRadius: radii.lg },
-              propsForDots: { r: '4', strokeWidth: '2', stroke: colors.accent },
-              propsForBackgroundLines: { strokeDasharray: '', stroke: colors.border, strokeOpacity: 0.5 },
-            }}
-            bezier
-            style={{ borderRadius: radii.lg }}
-            withInnerLines={false}
-            withOuterLines
-            withVerticalLines={false}
-            withHorizontalLines
-            fromZero
-          />
+          <View style={styles.chartContainer}>
+            <LineChart
+              data={chartData}
+              width={chartWidth}
+              height={220}
+              chartConfig={{
+                backgroundColor: colors.surface,
+                backgroundGradientFrom: colors.surface,
+                backgroundGradientTo: colors.surface,
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(250, 204, 21, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(163, 163, 163, ${opacity})`,
+                style: { borderRadius: radii.lg },
+                propsForDots: { r: '4', strokeWidth: '2', stroke: colors.accent },
+                propsForBackgroundLines: { strokeDasharray: '', stroke: colors.border, strokeOpacity: 0.5 },
+                propsForLabels: { fontSize: 10 },
+              }}
+              bezier
+              style={{ borderRadius: radii.lg }}
+              withInnerLines={false}
+              withOuterLines
+              withVerticalLines={false}
+              withHorizontalLines
+              fromZero
+              segments={4}
+            />
+          </View>
         </View>
       ) : (
         <View style={styles.chartCard}>

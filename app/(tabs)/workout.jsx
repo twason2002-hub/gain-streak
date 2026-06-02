@@ -734,34 +734,50 @@ export default function WorkoutScreen() {
     if (inactivityRef.current) clearTimeout(inactivityRef.current)
     if (autoWarnRef.current) clearTimeout(autoWarnRef.current)
 
-    await withTimeout(
-      supabase.from('workout_sessions')
-        .update({ status, completed_at: new Date().toISOString(), last_activity_at: new Date().toISOString() })
-        .eq('id', session.id),
-      10000
-    )
-
-    const setsToInsert = loggedSets.map((s, i) => ({
-      session_id: session.id,
-      user_id: user.id,
-      exercise_name: s.exercise_name,
-      reps: s.reps,
-      weight: s.weight,
-      set_number: i + 1,
-    }))
-
-    if (setsToInsert.length > 0) {
-      await withTimeout(supabase.from('workout_sets').insert(setsToInsert), 10000)
-    }
-
-    setSession(prev => prev ? { ...prev, status } : null)
-    if (status === 'completed') {
-      const exercises = [...new Set(loggedSets.map(s => s.exercise_name))]
-      Alert.alert(
-        'Workout Complete!',
-        `${exercises.length} exercise(s), ${loggedSets.length} set(s).`,
-        [{ text: 'OK', onPress: () => router.navigate('/(tabs)/dashboard') }]
+    try {
+      const { error: sessionError } = await withTimeout(
+        supabase.from('workout_sessions')
+          .update({ status, completed_at: new Date().toISOString(), last_activity_at: new Date().toISOString() })
+          .eq('id', session.id),
+        10000
       )
+      if (sessionError) {
+        setError('Failed to complete workout: ' + sessionError.message)
+        return
+      }
+
+      const setsToInsert = loggedSets.map((s, i) => ({
+        session_id: session.id,
+        user_id: user.id,
+        exercise_name: s.exercise_name,
+        reps: s.reps,
+        weight: s.weight,
+        set_number: i + 1,
+      }))
+
+      if (setsToInsert.length > 0) {
+        const { error: setsError } = await withTimeout(supabase.from('workout_sets').insert(setsToInsert), 10000)
+        if (setsError) {
+          setError('Failed to save sets: ' + setsError.message)
+          return
+        }
+      }
+
+      setSession(prev => prev ? { ...prev, status } : null)
+      setLoggedSets([])
+      setElapsed(0)
+      loadWorkoutHistory(1, false)
+
+      if (status === 'completed') {
+        const exercises = [...new Set(loggedSets.map(s => s.exercise_name))]
+        Alert.alert(
+          'Workout Complete!',
+          `${exercises.length} exercise(s), ${loggedSets.length} set(s).`,
+          [{ text: 'OK', onPress: () => router.navigate('/(tabs)/dashboard') }]
+        )
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to complete workout')
     }
   }
 
